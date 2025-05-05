@@ -1,0 +1,388 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Media;
+
+public class IntroductionForm : Form
+{
+    private Button btnSimulate;
+
+
+    //Introduction Panel
+    public IntroductionForm()
+    {
+        this.Text = "Welcome to Memory Simulation";
+        this.Size = new Size(800, 600);
+        this.StartPosition = FormStartPosition.CenterScreen;
+
+        SoundPlayer player = new SoundPlayer(@"C:\Users\mark arwin talaba\OneDrive\Desktop\Platech\BestFit\Images\\12.wav");
+        player.PlayLooping();
+
+        try
+        {
+            this.BackgroundImage = Image.FromFile("C:\\Users\\mark arwin talaba\\OneDrive\\Desktop\\Platech\\BestFit\\Images\\4.JPG");
+            this.BackgroundImageLayout = ImageLayout.Stretch;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error loading background image: " + ex.Message);
+        }
+
+        Label lblWelcome = new Label()
+        {
+            Text = "Welcome to the\nDYNAMIC PARTITION SIMULATOR",
+            Font = new Font("Times New Roman", 24, FontStyle.Bold),
+            ForeColor = Color.DarkBlue,
+            AutoSize = true,
+            BackColor = Color.Transparent,
+            Location = new Point(100, 100)
+        };
+
+        Label lblDevelopers = new Label()
+        {
+            Text = "Developed by:\nArmenion, Richie Ann\nBaclayon, Lance\nCimafranca, Karl Louise\nSeaborg, Ancline April",
+            Font = new Font("Times New Roman", 18, FontStyle.Italic),
+            ForeColor = Color.DarkBlue,
+            AutoSize = true,
+            BackColor = Color.Transparent,
+            Location = new Point(180, 350)
+        };
+        this.Controls.Add(lblDevelopers);
+
+        PictureBox gifBox = new PictureBox()
+        {
+            Image = Image.FromFile("C:\\Users\\mark arwin talaba\\OneDrive\\Desktop\\Platech\\BestFit\\Images\\gear-unscreen.gif"),
+            SizeMode = PictureBoxSizeMode.StretchImage,
+            Location = new Point(600, 30),
+            Size = new Size(100, 100),
+            BackColor = Color.Transparent,
+        };
+        this.Controls.Add(gifBox);
+
+        PictureBox gifBox2 = new PictureBox()
+        {
+            Image = Image.FromFile("C:\\Users\\mark arwin talaba\\OneDrive\\Desktop\\Platech\\BestFit\\Images\\gear-unscreen.gif"),
+            SizeMode = PictureBoxSizeMode.StretchImage,
+            Location = new Point(50, 450),
+            Size = new Size(100, 100),
+            BackColor = Color.Transparent
+        };
+        this.Controls.Add(gifBox2);
+
+        btnSimulate = new Button()
+        {
+            Text = "Simulate",
+            Font = new Font("Times New Roman", 14, FontStyle.Bold),
+            Location = new Point(330, 250),
+            BackColor = Color.DarkGreen,
+            ForeColor = Color.White,
+            Size = new Size(140, 50)
+        };
+        btnSimulate.Click += Simulate_Click;
+
+        this.Controls.Add(lblWelcome);
+        this.Controls.Add(btnSimulate);
+    }
+
+    private void Simulate_Click(object sender, EventArgs e)
+    {
+        this.Hide();  
+        DynamicPartitioningForm simulationForm = new DynamicPartitioningForm();
+        simulationForm.FormClosed += (s, args) => this.Close();  
+        simulationForm.Show();
+    }
+}
+
+
+//Main Simulator
+public class DynamicPartitioningForm : Form
+{
+    private TextBox txtTotalMemory, txtNumJobs, txtNewJobSize;
+    private Button btnInitialize, btnAddJob, btnAddNewJob, btnCompactMemory;
+    private ListBox lstJobs, lstMemory;
+    private int totalMemory, numJobs, front = 0, rear = 0;
+    private int[] jobSize, jobId, jobTime, queue, internalFragmentation;
+    private int jobCounter = 1;
+
+    public DynamicPartitioningForm()
+    {
+        this.Text = "Dynamic Partitioning (First Fit & Best Fit)";
+        this.Size = new Size(900, 700);
+        this.StartPosition = FormStartPosition.CenterScreen;
+
+        try
+        {
+            this.BackgroundImage = Image.FromFile("C:\\Users\\mark arwin talaba\\OneDrive\\Desktop\\Platech\\BestFit\\Images\\bg2.gif");
+            this.BackgroundImageLayout = ImageLayout.Stretch;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error loading background image: " + ex.Message);
+        }
+
+        Label lblTitle = new Label()
+        {
+            Text = "Dynamic Partitioning",
+            Font = new Font("Times New Roman", 20, FontStyle.Bold),
+            AutoSize = true,
+            Top = 20,
+            Left = 320,
+            ForeColor = Color.DarkBlue,
+            BackColor = Color.Transparent,
+        };
+
+        Label lblMemory = new Label() { Text = "Total Memory:", Top = 80, Left = 40, BackColor = Color.Transparent, Font = new Font("Times New Roman", 10, FontStyle.Bold) };
+        txtTotalMemory = new TextBox() { Top = 80, Left = 200, Width = 150 };
+
+        Label lblNumJobs = new Label() { Text = "(nth) Jobs:", Top = 120, Left = 40, BackColor = Color.Transparent, Font = new Font("Times New Roman", 10, FontStyle.Bold) };
+        txtNumJobs = new TextBox() { Top = 120, Left = 200, Width = 150 };
+
+        btnInitialize = new Button() { Text = "Initialize", Top = 160, Left = 40, Size = new Size(100, 30), BackColor = Color.Green, ForeColor = Color.White, Font = new Font("Times New Roman", 9, FontStyle.Bold) };
+        btnInitialize.Click += InitializeJobs;
+
+        lstJobs = new ListBox()
+        {
+            Top = 210,
+            Left = 40,
+            Width = 350,
+            Height = 200,
+            BackColor = Color.FromArgb(50, 50, 100),
+            ForeColor = Color.White,
+            Font = new Font("Consolas", 12, FontStyle.Regular)
+        };
+
+        lstMemory = new ListBox()
+        {
+            Top = 210,
+            Left = 420,
+            Width = 400,
+            Height = 200,
+            BackColor = Color.FromArgb(50, 50, 100),
+            ForeColor = Color.White,
+            Font = new Font("Consolas", 12, FontStyle.Regular)
+        };
+
+        Label lblNewJob = new Label() { Text = "New Job Size:", Top = 440, Left = 40, BackColor = Color.Transparent, Font = new Font("Times New Roman", 10, FontStyle.Bold) };
+        txtNewJobSize = new TextBox() { Top = 440, Left = 200, Width = 150 };
+
+        btnAddJob = new Button() { Text = "Replace Job (Best Fit)", Top = 490, Left = 40, Size = new Size(200, 35), BackColor = Color.Blue, ForeColor = Color.White, Font = new Font("Times New Roman", 9, FontStyle.Bold) };
+        btnAddJob.Click += ReplaceJobBestFit;
+
+        btnAddNewJob = new Button() { Text = "Add New Job", Top = 540, Left = 40, Size = new Size(200, 35), BackColor = Color.Purple, ForeColor = Color.White, Font = new Font("Times New Roman", 9, FontStyle.Bold) };
+        btnAddNewJob.Click += AddNewJob;
+
+        
+
+        this.Controls.Add(lblTitle);
+        this.Controls.Add(lblMemory);
+        this.Controls.Add(txtTotalMemory);
+        this.Controls.Add(lblNumJobs);
+        this.Controls.Add(txtNumJobs);
+        this.Controls.Add(btnInitialize);
+        this.Controls.Add(lstJobs);
+        this.Controls.Add(lstMemory);
+        this.Controls.Add(lblNewJob);
+        this.Controls.Add(txtNewJobSize);
+        this.Controls.Add(btnAddJob);
+        this.Controls.Add(btnAddNewJob);
+        this.Controls.Add(btnCompactMemory);
+    }
+
+    // Adds another job
+    private void AddNewJob(object sender, EventArgs e)
+    {
+        if (!int.TryParse(txtNewJobSize.Text, out int newSize) || newSize <= 0)
+        {
+            MessageBox.Show("Invalid input. Please enter a valid positive number.");
+            return;
+        }
+
+        if (rear >= numJobs + 10)
+        {
+            MessageBox.Show("No more space available for new jobs.");
+            return;
+        }
+
+        int usedMemory = 10;
+        for (int i = 0; i < rear; i++)
+        {
+            usedMemory += jobSize[i];
+        }
+
+        if (usedMemory + newSize > totalMemory)
+        {
+            MessageBox.Show("Not enough memory to add this job.");
+            return;
+        }
+
+        jobSize[rear] = newSize;
+        jobId[rear] = jobCounter++;
+        jobTime[rear] = rear * 6;
+        internalFragmentation[rear] = 0;
+        lstJobs.Items.Add($"Job{jobId[rear]}: {newSize} KB, {jobTime[rear]} ms");
+
+        int memoryPosition = 10;
+        for (int i = 0; i < rear; i++)
+        {
+            memoryPosition += jobSize[i];
+        }
+
+        lstMemory.Items.Add($"|     {memoryPosition}  |  Job{jobId[rear]} ({newSize} KB)");
+        rear++;
+        UpdateMemoryDisplay();
+    }
+
+
+    //Replace existing Job
+    private void ReplaceJobBestFit(object sender, EventArgs e)
+    {
+        if (!int.TryParse(txtNewJobSize.Text, out int newSize) || newSize <= 0)
+        {
+            MessageBox.Show("Invalid input. Please enter a valid positive number.");
+            return;
+        }
+
+        if (lstJobs.Items.Count == 0)
+        {
+            MessageBox.Show("No jobs to replace.");
+            return;
+        }
+
+        int bestFitIndex = -1;
+        int smallestFragmentation = int.MaxValue;
+
+        for (int i = 0; i < rear; i++)
+        {
+            int fragmentation = jobSize[i] - newSize;
+            if (fragmentation >= 0 && fragmentation < smallestFragmentation)
+            {
+                smallestFragmentation = fragmentation;
+                bestFitIndex = i;
+            }
+        }
+
+        if (bestFitIndex == -1)
+        {
+            MessageBox.Show("No suitable job slot found to fit the new job.");
+            return;
+        }
+
+        jobSize[bestFitIndex] = newSize;
+        jobId[bestFitIndex] = jobCounter++;
+        internalFragmentation[bestFitIndex] = smallestFragmentation;  // Set IF when job is replaced
+        lstJobs.Items[bestFitIndex] = $"Job{jobId[bestFitIndex]}: {newSize} KB, {jobTime[bestFitIndex]} ms";
+
+        UpdateMemoryDisplay();
+    }
+
+    
+    
+
+    // Updates the memory list box
+    private void UpdateMemoryDisplay()
+    {
+        lstMemory.Items.Clear();
+        lstMemory.Items.Add("|  Address (KB)   |      Memory Content  ");
+        lstMemory.Items.Add("|      0          |  OS Kernel ");
+
+        int memoryPosition = 10;
+
+        for (int i = front; i < rear; i++)
+        {
+            lstMemory.Items.Add($"|     {memoryPosition}          |  Job{jobId[i]} ({jobSize[i]} KB)");
+
+            if (internalFragmentation[i] > 0)
+            {
+                memoryPosition += jobSize[i];
+                lstMemory.Items.Add($"|     {memoryPosition}          |  IF ({internalFragmentation[i]} KB)");
+            }
+            else
+            {
+                memoryPosition += jobSize[i];
+            }
+        }
+
+        if (memoryPosition < totalMemory)
+        {
+            lstMemory.Items.Add($"|     {memoryPosition}          |  FREE  ");
+        }
+
+        lstMemory.Items.Add($"|     {totalMemory}         |  Total Memory  ");
+    }
+
+
+    //Initialize the Jobs
+    private void InitializeJobs(object sender, EventArgs e)
+    {
+        if (!int.TryParse(txtTotalMemory.Text, out totalMemory) || !int.TryParse(txtNumJobs.Text, out numJobs))
+        {
+            MessageBox.Show("Please enter valid numbers for Total Memory and Number of Jobs.");
+            return;
+        }
+
+        jobSize = new int[numJobs + 10];
+        jobId = new int[numJobs + 10];
+        jobTime = new int[numJobs + 10];
+        queue = new int[numJobs + 10];
+        internalFragmentation = new int[numJobs + 10];
+        rear = 0;
+        front = 0;
+
+        lstJobs.Items.Clear();
+        lstMemory.Items.Clear();
+        lstMemory.Items.Add("|  Address (KB)   |      Memory Content  ");
+        lstMemory.Items.Add("|      0          |  OS Kernel ");
+
+        int memoryPosition = 10;
+
+        for (int i = 0; i < numJobs; i++)
+        {
+            string input = Microsoft.VisualBasic.Interaction.InputBox($"Enter size for Job {i + 1} (KB):", "Job Size", "");
+
+            if (!int.TryParse(input, out jobSize[i]) || jobSize[i] <= 0)
+            {
+                MessageBox.Show("Invalid input. Please enter a positive number.");
+                return;
+            }
+
+            
+            int currentUsedMemory = 10;
+            for (int j = 0; j < i; j++)
+            {
+                currentUsedMemory += jobSize[j];
+            }
+
+            if (currentUsedMemory + jobSize[i] > totalMemory)
+            {
+                MessageBox.Show("Adding this job would exceed the total memory limit. Job not added.");
+                i--;
+                continue;
+            }
+
+            jobId[i] = jobCounter++;
+            jobTime[i] = i * 6;
+            queue[rear++] = i;
+
+            lstJobs.Items.Add($"Job{jobId[i]}: {jobSize[i]} KB, {jobTime[i]} ms");
+            lstMemory.Items.Add($"|     {memoryPosition}          |  Job{jobId[i]} ({jobSize[i]} KB)");
+            memoryPosition += jobSize[i];
+        }
+
+        if (memoryPosition < totalMemory)
+        {
+            lstMemory.Items.Add($"|     {memoryPosition}         |  FREE  ");
+        }
+
+        lstMemory.Items.Add($"|     {totalMemory}         |  Total Memory  ");
+    }
+
+
+
+    [STAThread]
+    static void Main()
+    {
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+        Application.Run(new IntroductionForm());
+    }
+}
